@@ -28,12 +28,19 @@ export const getEmbedUrl = (url: string, platform: Platform): string => {
         // Convert https://www.bandlab.com/post/ID to embed URL
         // e.g. https://www.bandlab.com/embed/?id=ID
         try {
+            // Already an embed URL?
+            if (url.includes('/embed/')) return url;
+
             const match = url.match(/\/post\/([a-zA-Z0-9-]+)/);
             if (match && match[1]) {
-                // Determine if we need to fix the ID (User mentioned c46 -> c16 mismatch possibility, 
-                // but assuming typo for now. If strictly required, we'd need more logic. 
-                // For now, simple extraction.)
-                return `https://www.bandlab.com/embed/?id=${match[1]}`;
+                let id = match[1];
+                // User-observed pattern: Post ID 'c4...' maps to Embed ID 'c1...'
+                // It appears the second character often needs to be '1' for the embed/revision ID.
+                // We apply this fix for 'c4' specifically as verified.
+                if (id.startsWith('c4')) {
+                    id = 'c1' + id.substring(2);
+                }
+                return `https://www.bandlab.com/embed/?id=${id}`;
             }
         } catch (e) {
             return url;
