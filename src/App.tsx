@@ -3,8 +3,9 @@ import { Dashboard } from './components/Dashboard';
 import { Login } from './components/Login';
 import { ProjectList } from './components/ProjectList';
 import { useAuth } from './hooks/useAuth';
+import { ThemeProvider } from './context/ThemeContext';
 
-function App() {
+function AppContent() {
   const { user, loading, logout } = useAuth();
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
 
@@ -14,17 +15,14 @@ function App() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-background text-white font-sans selection:bg-primary/30">
-        <div className="fixed inset-0 bg-gradient-to-br from-purple-900/20 via-black to-blue-900/20 pointer-events-none -z-10" />
+      <div className="min-h-screen bg-background text-text font-sans selection:bg-primary/30">
         <Login />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background text-white font-sans selection:bg-primary/30">
-      <div className="fixed inset-0 bg-gradient-to-br from-purple-900/20 via-black to-blue-900/20 pointer-events-none -z-10" />
-
+    <div className="min-h-screen bg-background text-text font-sans selection:bg-primary/30">
       {currentProjectId ? (
         <Dashboard
           projectId={currentProjectId}
@@ -35,6 +33,14 @@ function App() {
         <ProjectList onSelectProject={setCurrentProjectId} />
       )}
     </div>
+  );
+}
+
+function App() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
   );
 }
 

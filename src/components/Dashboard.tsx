@@ -5,9 +5,10 @@ import { SongCard } from './SongCard';
 import { ImportUpload } from './ImportUpload';
 import { AdminPanel } from './AdminPanel';
 import { SongDetailModal } from './SongDetailModal';
-import { LogOut, LayoutGrid, List, Settings, ChevronLeft } from 'lucide-react';
+import { LogOut, LayoutGrid, List, Settings, ChevronLeft, Moon, Sun } from 'lucide-react';
 import { useProjects } from '../hooks/useProjects';
 import { usePresence } from '../hooks/usePresence';
+import { useTheme } from '../context/ThemeContext';
 import type { Song } from '../types';
 
 interface DashboardProps {
@@ -16,8 +17,10 @@ interface DashboardProps {
     onBack: () => void;
 }
 
+
 export const Dashboard: React.FC<DashboardProps> = ({ onLogout, projectId, onBack }) => {
     const { user, isAdmin } = useAuth();
+    const { theme, toggleTheme } = useTheme();
     const { songs, loading, updateStatus } = useSongs(projectId); // Removed unused addSongs, error
     const { activeUsers } = usePresence(projectId, user);
 
@@ -75,6 +78,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, projectId, onBac
                             </div>
                         )}
                     </div>
+
+                    <button
+                        onClick={toggleTheme}
+                        className="p-2 rounded-full text-textSecondary hover:text-primary hover:bg-surfaceHighlight transition-colors"
+                        title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                    >
+                        {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+                    </button>
 
                     {isAdmin && (
                         <button onClick={() => setShowAdmin(true)} className="p-2 rounded-full text-textSecondary hover:text-primary hover:bg-surfaceHighlight transition-colors" title="Admin Settings">

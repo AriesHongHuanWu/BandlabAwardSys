@@ -3,14 +3,56 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    /* Light Mode (Google Material Light) */
+    --background: #f8f9fa;
+    --surface: #ffffff;
+    --surface-highlight: #f1f3f4;
+    --text: #202124;
+    --text-secondary: #5f6368;
+    --border: #dadce0;
+
+    /* Branding */
+    --primary: #1a73e8;
+    --primary-foreground: #ffffff;
+    --secondary: #ea4335;
+    --accent: #34a853;
+  }
+
+  .dark {
+    /* Dark Mode (Modern Slate/Zinc) */
+    /* Deep black background for OLED/contrast */
+    --background: #09090b;
+    /* Slightly lighter for cards */
+    --surface: #18181b;
+    /* Highlight for hovers/active states */
+    --surface-highlight: #27272a;
+
+    /* Text - High contrast but not harsh white */
+    --text: #fafafa;
+    --text-secondary: #a1a1aa;
+
+    /* Borders - Subtle separation */
+    --border: #3f3f46;
+
+    /* Adjust primary for better visibility in dark mode if needed, 
+       but standard Google Blue usually works well. 
+       Let's brighten it slightly for dark mode. */
+    --primary: #3b82f6;
+  }
+
   body {
-    @apply bg-background text-text antialiased;
+    @apply bg-background text-text antialiased transition-colors duration-300;
+    background-color: var(--background);
+    color: var(--text);
   }
 }
 
 /* Material Design Utilities */
 .material-card {
-  @apply bg-surface border border-border rounded-xl shadow-material-sm hover:shadow-material-md transition-shadow duration-300;
+  @apply bg-surface border border-border rounded-xl shadow-sm hover:shadow-md transition-all duration-300;
+  background-color: var(--surface);
+  border-color: var(--border);
 }
 
 .material-btn {
@@ -19,10 +61,14 @@
 
 .material-btn-primary {
   @apply bg-primary text-white shadow-md hover:shadow-lg hover:bg-primary/90;
+  background-color: var(--primary);
 }
 
 .material-input {
   @apply w-full px-4 py-2 rounded-lg border border-border bg-surface focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all;
+  background-color: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
 }
 
 /* Scrollbar Polish */
@@ -35,5 +81,5 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-gray-300 rounded-full hover:bg-gray-400;
+  @apply bg-gray-300 dark:bg-zinc-700 rounded-full hover:bg-gray-400 dark:hover:bg-zinc-600;
 }
