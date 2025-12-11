@@ -5,7 +5,7 @@ import { ProjectList } from './components/ProjectList';
 import { useAuth } from './hooks/useAuth';
 
 function App() {
-  const { user, loading } = useAuth();
+  const { user, loading, logout } = useAuth();
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
 
   if (loading) {
@@ -27,9 +27,9 @@ function App() {
 
       {currentProjectId ? (
         <Dashboard
-          user={user}
           projectId={currentProjectId}
           onBack={() => setCurrentProjectId(null)}
+          onLogout={logout}
         />
       ) : (
         <ProjectList onSelectProject={setCurrentProjectId} />
