@@ -27,20 +27,20 @@ export const SongCard: React.FC<SongCardProps> = ({ song, onApprove, onReject })
                     </a>
                 </div>
                 <div className={`px-2 py-1 rounded text-xs font-bold uppercase ${status === 'approved' ? 'bg-green-500/20 text-green-400' :
-                        status === 'rejected' ? 'bg-red-500/20 text-red-400' :
-                            'bg-yellow-500/20 text-yellow-400'
+                    status === 'rejected' ? 'bg-red-500/20 text-red-400' :
+                        'bg-yellow-500/20 text-yellow-400'
                     }`}>
                     {status}
                 </div>
             </div>
 
             <div className="aspect-video w-full bg-black/50 rounded-lg overflow-hidden relative">
-                {isSpotify ? (
+                {(isSpotify || platform === 'bandlab') ? (
                     <iframe
-                        src={getEmbedUrl(url, 'spotify')}
+                        src={getEmbedUrl(url, platform)}
                         className="w-full h-full"
                         frameBorder="0"
-                        allow="encrypted-media"
+                        allow="encrypted-media; fullscreen"
                         allowTransparency
                     />
                 ) : (
