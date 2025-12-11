@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { useProjects } from '../hooks/useProjects';
 import { Plus, Trash2, FolderOpen, FileSpreadsheet, Loader, LogOut, Shield } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import * as XLSX from 'xlsx';
 import { db } from '../services/firebase';
+import { parseExcelFile } from '../services/parser';
 import { collection, addDoc } from 'firebase/firestore';
 import { AdminPanel } from './AdminPanel';
 
@@ -23,45 +23,17 @@ export const ProjectList: React.FC<ProjectListProps> = ({ onSelectProject }) => 
 
         setUploading(true);
         try {
-            const buffer = await file.arrayBuffer();
-            const wb = XLSX.read(buffer);
-            const ws = wb.Sheets[wb.SheetNames[0]];
-            const data = XLSX.utils.sheet_to_json(ws);
-
             // 1. Create Project
             const projectName = file.name.replace('.xlsx', '').replace('.xls', '');
             const projectId = await createProject(projectName);
 
-            // 2. Parse and Upload Songs
-            const batchPromises = data.map((row: any) => {
-                const url = row['Drop a track or video link (Short answer, required)'] ||
-                    row['Link to Your BandLab Profile (Short answer, required)'] || '';
+            const songs = await parseExcelFile(file);
 
-                if (!url) return null;
-
-                let platform: any = 'other';
-                if (url.includes('youtube.com') || url.includes('youtu.be')) platform = 'youtube';
-                else if (url.includes('spotify.com')) platform = 'spotify';
-                else if (url.includes('soundcloud.com')) platform = 'soundcloud';
-                else if (url.includes('bandlab.com')) platform = 'bandlab';
-
+            // 2. Upload Songs
+            const batchPromises = songs.map(song => {
                 return addDoc(collection(db, 'songs'), {
-                    projectId,
-                    originalRowData: row,
-                    url,
-                    extractedUrl: url,
-                    platform,
-                    status: 'pending',
-                    artistName: row['BandLab Username (Short answer, required)'] || 'Unknown Artist',
-                    songName: 'Untitled',
-                    socialHandles: row['Social Handles (Optional) (Short answer)'] || '',
-                    submissionCategory: row['What category fits you best? (Short answer, optional)'] || '',
-                    submissionReason: row['Why should you be part of the BandLab Choice Awards? (Paragraph, optional)'] || '',
-                    featurePermission: row['Do you give permission to be featured on Twitch/YouTube during the show?'] || '',
-                    nominations: row['List up to 5 BandLab artists you think deserve a nomination'] || '',
-                    votes: [],
-                    notes: '',
-                    createdAt: Date.now()
+                    ...song,
+                    projectId
                 });
             });
 
