@@ -3,12 +3,14 @@ import { useSongs } from '../hooks/useSongs';
 import { SongCard } from './SongCard';
 import { ImportUpload } from './ImportUpload';
 import { AdminPanel } from './AdminPanel';
-import type { Vote } from '../types';
+import { SongDetailModal } from './SongDetailModal';
+import type { Vote, Song } from '../types';
 import { LayoutGrid, Table as TableIcon, Download, LogOut, User as UserIcon, Shield, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
 import type { User } from 'firebase/auth';
 import { useAuth } from '../hooks/useAuth';
+import { usePresence } from '../hooks/usePresence';
 
 interface DashboardProps {
     user: User;
@@ -16,21 +18,19 @@ interface DashboardProps {
     onBack: () => void;
 }
 
-import { usePresence } from '../hooks/usePresence';
-
 export const Dashboard: React.FC<DashboardProps> = ({ user, projectId, onBack }) => {
-    const { songs, loading, voteSong, updateStatus } = useSongs(projectId); // Using projectId
+    const { songs, loading, voteSong, updateStatus } = useSongs(projectId);
     const { activeUsers } = usePresence(projectId);
     const { logout } = useAuth();
     const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
     const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
     const [showAdminPanel, setShowAdminPanel] = useState(false);
+    const [selectedSong, setSelectedSong] = useState<Song | null>(null);
 
     const filteredSongs = useMemo(() => {
         return songs.filter(s => filterStatus === 'all' ? true : s.status === filterStatus);
     }, [songs, filterStatus]);
 
-    // ... vote handlers ...
     const handleVote = (songId: string, type: 'approve' | 'reject') => {
         const vote: Vote = {
             userId: user.uid,
@@ -39,19 +39,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, projectId, onBack })
             timestamp: Date.now()
         };
         voteSong(songId, vote);
-
-        // Auto update status if strictly screening (optional rule)
         updateStatus(songId, type === 'approve' ? 'approved' : 'rejected');
     };
 
     const exportData = () => {
-        // ...
         const ws = XLSX.utils.json_to_sheet(songs.map(s => ({
             Artist: s.artistName,
             URL: s.url,
             Platform: s.platform,
             Status: s.status,
-            Votes: s.votes.length
+            Votes: s.votes.length,
+            Category: s.submissionCategory,
+            Submitter: s.submitterEmail
         })));
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Songs");
@@ -62,7 +61,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, projectId, onBack })
 
     return (
         <div className="min-h-screen p-8 space-y-8">
-            {/* Header */}
             <header className="flex flex-col md:flex-row justify-between items-center gap-4">
                 <div className="flex items-center gap-4">
                     <button
@@ -78,8 +76,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, projectId, onBack })
                         </h1>
                         <div className="flex items-center gap-2">
                             <p className="text-white/50">Project ID: {projectId.slice(0, 8)}...</p>
-
-                            {/* Presence Indicators */}
                             {activeUsers.length > 0 && (
                                 <div className="flex -space-x-2">
                                     {activeUsers.map(u => (
@@ -143,22 +139,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, projectId, onBack })
 
             {showAdminPanel && <AdminPanel onClose={() => setShowAdminPanel(false)} />}
 
-            {/* Import Section (Collapsible or just visible if empty) */}
+            <SongDetailModal song={selectedSong} onClose={() => setSelectedSong(null)} />
+
             {songs.length === 0 && (
                 <section className="max-w-xl mx-auto">
                     <ImportUpload projectId={projectId} />
                 </section>
             )}
 
-            {/* Filters */}
-            <div className="flex gap-2 overflow-x-auto pb-2">
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                 {(['all', 'pending', 'approved', 'rejected'] as const).map(status => (
                     <button
                         key={status}
                         onClick={() => setFilterStatus(status)}
-                        className={`px-4 py-2 rounded-full capitalize text-sm font-medium transition-colors ${filterStatus === status
-                            ? 'bg-white text-black'
-                            : 'bg-white/5 text-white/60 hover:bg-white/10'
+                        className={`px-6 py-2.5 rounded-full capitalize text-sm font-medium transition-all duration-300 ${filterStatus === status
+                            ? 'bg-primary text-black shadow-primary/20 shadow-lg scale-105'
+                            : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'
                             }`}
                     >
                         {status} {status !== 'all' && `(${songs.filter(s => s.status === status).length})`}
@@ -166,55 +162,58 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, projectId, onBack })
                 ))}
             </div>
 
-            {/* Content */}
             {viewMode === 'grid' ? (
                 <motion.div
                     layout
                     className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
                 >
-                    <AnimatePresence>
+                    <AnimatePresence mode="popLayout">
                         {filteredSongs.map(song => (
                             <motion.div
                                 key={song.id}
-                                layout
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.9 }}
-                                transition={{ duration: 0.2 }}
+                                layoutId={`song-card-${song.id}`}
+                                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+                                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                             >
                                 <SongCard
                                     song={song}
                                     onApprove={() => handleVote(song.id, 'approve')}
                                     onReject={() => handleVote(song.id, 'reject')}
+                                    onInfoClick={() => setSelectedSong(song)}
                                 />
                             </motion.div>
                         ))}
                     </AnimatePresence>
                 </motion.div>
             ) : (
-                <div className="glass rounded-xl overflow-hidden">
+                <div className="glass rounded-xl overflow-hidden p-1">
                     <table className="w-full text-left text-sm text-white/80">
                         <thead className="bg-white/5 text-xs uppercase font-bold text-white/50">
                             <tr>
-                                <th className="p-4">Artist</th>
+                                <th className="p-4 rounded-tl-lg">Artist</th>
                                 <th className="p-4">Platform</th>
                                 <th className="p-4">Status</th>
-                                <th className="p-4">Link</th>
+                                <th className="p-4 rounded-tr-lg">Action</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5">
                             {filteredSongs.map(song => (
-                                <tr key={song.id} className="hover:bg-white/5 transition-colors">
-                                    <td className="p-4 font-medium">{song.artistName}</td>
+                                <tr key={song.id}
+                                    className="hover:bg-white/5 transition-colors cursor-pointer group"
+                                    onClick={() => setSelectedSong(song)}
+                                >
+                                    <td className="p-4 font-medium text-white group-hover:text-primary transition-colors">{song.artistName}</td>
                                     <td className="p-4 capitalize">{song.platform}</td>
                                     <td className="p-4">
-                                        <span className={`px-2 py-0.5 rounded text-xs lowercase ${song.status === 'approved' ? 'bg-green-500/20 text-green-400' :
-                                            song.status === 'rejected' ? 'bg-red-500/20 text-red-400' :
-                                                'bg-yellow-500/20 text-yellow-400'
+                                        <span className={`px-2 py-0.5 rounded text-xs lowercase border ${song.status === 'approved' ? 'bg-green-500/10 border-green-500/20 text-green-400' :
+                                            song.status === 'rejected' ? 'bg-red-500/10 border-red-500/20 text-red-400' :
+                                                'bg-yellow-500/10 border-yellow-500/20 text-yellow-400'
                                             }`}>{song.status}</span>
                                     </td>
-                                    <td className="p-4">
-                                        <a href={song.url} target="_blank" className="text-primary hover:underline">Open</a>
+                                    <td className="p-4 text-white/40 group-hover:text-white transition-colors">
+                                        View Details
                                     </td>
                                 </tr>
                             ))}

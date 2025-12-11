@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import type { Song } from '../types';
 import { getEmbedUrl } from '../utils/platformDetector';
-import { Check, X, ExternalLink } from 'lucide-react';
+import { Check, X, ExternalLink, Info } from 'lucide-react';
 import { AudioPlayer } from './AudioPlayer';
+import { motion } from 'framer-motion';
 
 interface SongCardProps {
     song: Song;
     onApprove: () => void;
     onReject: () => void;
+    onInfoClick?: () => void;
 }
 
-export const SongCard: React.FC<SongCardProps> = ({ song, onApprove, onReject }) => {
+export const SongCard: React.FC<SongCardProps> = ({ song, onApprove, onReject, onInfoClick }) => {
     const { url, platform, artistName, status } = song;
     const isSpotify = platform === 'spotify';
 
@@ -20,7 +22,6 @@ export const SongCard: React.FC<SongCardProps> = ({ song, onApprove, onReject })
 
     useEffect(() => {
         if (platform === 'bandlab' && url) {
-            // ALWAYS resolve BandLab server-side to check for M4A first
             setResolving(true);
             const embedUrl = getEmbedUrl(url, platform);
 
@@ -28,7 +29,6 @@ export const SongCard: React.FC<SongCardProps> = ({ song, onApprove, onReject })
                 .then(res => res.json())
                 .then(data => {
                     if (data.audioUrl) {
-                        // Use the NEW proxy endpoint for playback
                         const proxyUrl = `/api/stream-audio?url=${encodeURIComponent(data.audioUrl)}`;
                         setResolvedUrl(proxyUrl);
                         setMetadata({
@@ -45,67 +45,99 @@ export const SongCard: React.FC<SongCardProps> = ({ song, onApprove, onReject })
                 .catch(() => setResolvedUrl(embedUrl))
                 .finally(() => setResolving(false));
         } else {
-            // For other platforms, just use the synchronous result
+            console.log('Resolving generic platform:', platform, url);
             setResolvedUrl(getEmbedUrl(url, platform));
         }
     }, [url, platform]);
 
     return (
-        <div className="glass-card p-4 flex flex-col gap-4 group">
-            <div className="flex justify-between items-start">
-                <div>
-                    <h3 className="font-bold text-lg text-white truncate max-w-[200px]" title={artistName}>{artistName}</h3>
-                    <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline flex items-center gap-1">
-                        {platform.toUpperCase()} <ExternalLink size={10} />
-                    </a>
-                </div>
-                <div className={`px-2 py-1 rounded text-xs font-bold uppercase ${status === 'approved' ? 'bg-green-500/20 text-green-400' :
-                    status === 'rejected' ? 'bg-red-500/20 text-red-400' :
-                        'bg-yellow-500/20 text-yellow-400'
-                    }`}>
-                    {status}
+        <motion.div
+            whileHover={{ y: -5, boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)" }}
+            whileTap={{ scale: 0.98 }}
+            className="group relative flex flex-col h-[340px] rounded-[32px] overflow-hidden bg-zinc-900 border border-white/5 shadow-xl transition-all duration-300"
+        >
+            {/* Header / Info Area (Clickable) */}
+            <div
+                onClick={onInfoClick}
+                className="absolute top-0 left-0 w-full p-6 z-20 bg-gradient-to-b from-black/80 via-black/40 to-transparent cursor-pointer"
+            >
+                <div className="flex justify-between items-start">
+                    <div className="flex-1 min-w-0 mr-4">
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-md text-[10px] font-bold uppercase tracking-wider text-white border border-white/10">
+                                {platform}
+                            </span>
+                            {status !== 'pending' && (
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${status === 'approved' ? 'bg-green-500/20 border-green-500/20 text-green-400' :
+                                        'bg-red-500/20 border-red-500/20 text-red-400'
+                                    }`}>
+                                    {status}
+                                </span>
+                            )}
+                        </div>
+                        <h3 className="font-bold text-2xl text-white truncate drop-shadow-md group-hover:text-primary transition-colors">
+                            {artistName}
+                        </h3>
+                    </div>
+                    <button className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white backdrop-blur-md transition-colors opacity-0 group-hover:opacity-100">
+                        <Info size={18} />
+                    </button>
                 </div>
             </div>
 
-            <div className="aspect-video w-full bg-black/50 rounded-lg overflow-hidden relative">
+            {/* Main Content (Player/Embed) */}
+            <div className="absolute inset-0 z-0 bg-zinc-900">
                 {resolving ? (
-                    <div className="absolute inset-0 flex items-center justify-center text-white/50 animate-pulse">
-                        <span className="text-sm">Resolving Link...</span>
+                    <div className="w-full h-full flex flex-col items-center justify-center text-white/50 space-y-2">
+                        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                        <span className="text-xs font-medium tracking-wide uppercase">Loading...</span>
                     </div>
                 ) : (isSpotify || (platform === 'bandlab' && resolvedUrl.includes('/embed/')) || platform === 'youtube') ? (
                     <iframe
                         src={resolvedUrl}
                         className="w-full h-full"
                         frameBorder="0"
-                        allow="encrypted-media; fullscreen; accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allow="encrypted-media; fullscreen; accelerometer; autoplay; clipboard-write; gyroscope; picture-in-picture"
                         allowTransparency
                     />
                 ) : (
-                    <div className="w-full h-full bg-zinc-900">
-                        <AudioPlayer
-                            src={resolvedUrl || url}
-                            artistName={metadata.artist || artistName}
-                            songName={metadata.title}
-                            coverUrl={metadata.cover}
-                        />
-                    </div>
+                    <AudioPlayer
+                        src={resolvedUrl || url}
+                        artistName={metadata.artist || artistName}
+                        songName={metadata.title}
+                        coverUrl={metadata.cover}
+                    />
                 )}
             </div>
 
-            <div className="grid grid-cols-2 gap-2 mt-auto">
-                <button
-                    onClick={onReject}
-                    className="flex items-center justify-center gap-2 p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition-all font-medium"
-                >
-                    <X size={18} /> Reject
-                </button>
-                <button
-                    onClick={onApprove}
-                    className="flex items-center justify-center gap-2 p-2 rounded-lg bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/20 transition-all font-medium"
-                >
-                    <Check size={18} /> Approve
-                </button>
+            {/* Action Bar (Glassmorphism) */}
+            <div className="mt-auto relative z-20 p-4">
+                <div className="grid grid-cols-2 gap-3">
+                    <button
+                        onClick={(e) => { e.stopPropagation(); onReject(); }}
+                        className="flex items-center justify-center gap-2 py-3 rounded-2xl bg-black/40 hover:bg-red-500/20 text-white/70 hover:text-red-400 border border-white/10 hover:border-red-500/30 backdrop-blur-md transition-all font-medium"
+                    >
+                        <X size={18} /> <span className="text-sm">Reject</span>
+                    </button>
+                    <button
+                        onClick={(e) => { e.stopPropagation(); onApprove(); }}
+                        className="flex items-center justify-center gap-2 py-3 rounded-2xl bg-white/10 hover:bg-green-500/20 text-white hover:text-green-400 border border-white/20 hover:border-green-500/30 backdrop-blur-md transition-all font-medium"
+                    >
+                        <Check size={18} /> <span className="text-sm">Approve</span>
+                    </button>
+                </div>
+                <div className="flex justify-center mt-3">
+                    <a
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-xs text-white/30 hover:text-primary flex items-center gap-1 transition-colors"
+                    >
+                        Open Original <ExternalLink size={10} />
+                    </a>
+                </div>
             </div>
-        </div>
+        </motion.div>
     );
 };
