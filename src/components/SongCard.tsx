@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactPlayer from 'react-player';
 import type { Song } from '../types';
 import { getEmbedUrl } from '../utils/platformDetector';
@@ -13,6 +13,38 @@ interface SongCardProps {
 export const SongCard: React.FC<SongCardProps> = ({ song, onApprove, onReject }) => {
     const { url, platform, artistName, status } = song;
     const isSpotify = platform === 'spotify';
+
+    const [resolvedUrl, setResolvedUrl] = useState<string>('');
+    const [resolving, setResolving] = useState(false);
+
+    useEffect(() => {
+        if (platform === 'bandlab') {
+            const embedUrl = getEmbedUrl(url, platform);
+
+            // If the synchronous logic found a valid embed URL (has /embed/), use it.
+            if (embedUrl.includes('/embed/')) {
+                setResolvedUrl(embedUrl);
+            } else {
+                // Otherwise, try to resolve via our backend function
+                setResolving(true);
+                // Use a relative path for the API call, works in dev and prod if proxy/functions set up
+                fetch(`/api/resolve-bandlab?url=${encodeURIComponent(url)}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.id) {
+                            setResolvedUrl(`https://www.bandlab.com/embed/?id=${data.id}`);
+                        } else {
+                            setResolvedUrl(embedUrl); // Fallback
+                        }
+                    })
+                    .catch(() => setResolvedUrl(embedUrl))
+                    .finally(() => setResolving(false));
+            }
+        } else {
+            // For other platforms, just use the synchronous result
+            setResolvedUrl(getEmbedUrl(url, platform));
+        }
+    }, [url, platform]);
 
     // Cast ReactPlayer to any to avoid strict type issues with 'url' prop in some TS configurations
     const Player = ReactPlayer as any;
@@ -35,9 +67,13 @@ export const SongCard: React.FC<SongCardProps> = ({ song, onApprove, onReject })
             </div>
 
             <div className="aspect-video w-full bg-black/50 rounded-lg overflow-hidden relative">
-                {(isSpotify || (platform === 'bandlab' && getEmbedUrl(url, platform).includes('/embed/'))) ? (
+                {resolving ? (
+                    <div className="absolute inset-0 flex items-center justify-center text-white/50 animate-pulse">
+                        <span className="text-sm">Resolving Link...</span>
+                    </div>
+                ) : (isSpotify || (platform === 'bandlab' && resolvedUrl.includes('/embed/'))) ? (
                     <iframe
-                        src={getEmbedUrl(url, platform)}
+                        src={resolvedUrl}
                         className="w-full h-full"
                         frameBorder="0"
                         allow="encrypted-media; fullscreen"
