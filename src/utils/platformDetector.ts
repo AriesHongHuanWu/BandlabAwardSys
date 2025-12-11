@@ -1,8 +1,16 @@
 export type Platform = 'youtube' | 'spotify' | 'soundcloud' | 'bandlab' | 'other';
 
+export const extractUrl = (text: string): string | null => {
+    if (!text) return null;
+    const match = text.match(/(https?:\/\/[^\s"<>]+)/);
+    return match ? match[0] : null;
+};
+
 export const detectPlatform = (url: string): Platform => {
-    if (!url) return 'other';
-    const lowerUrl = url.toLowerCase();
+    // Try to clean the URL first, or use original if no match (fallback)
+    const clean = extractUrl(url) || url;
+    if (!clean) return 'other';
+    const lowerUrl = clean.toLowerCase();
 
     if (lowerUrl.includes('youtube.com') || lowerUrl.includes('youtu.be')) return 'youtube';
     if (lowerUrl.includes('spotify.com')) return 'spotify';
@@ -12,7 +20,9 @@ export const detectPlatform = (url: string): Platform => {
     return 'other';
 };
 
-export const getEmbedUrl = (url: string, platform: Platform): string => {
+export const getEmbedUrl = (rawUrl: string, platform: Platform): string => {
+    const url = extractUrl(rawUrl) || rawUrl;
+
     if (platform === 'spotify') {
         // Convert https://open.spotify.com/track/ID to embed URL
         // e.g. https://open.spotify.com/embed/track/ID

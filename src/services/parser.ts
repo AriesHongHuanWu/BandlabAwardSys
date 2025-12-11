@@ -1,6 +1,6 @@
 import * as XLSX from 'xlsx';
 import type { Song } from '../types';
-import { detectPlatform } from '../utils/platformDetector';
+import { detectPlatform, extractUrl } from '../utils/platformDetector';
 
 interface RawRow {
     'Timestamp': unknown;
@@ -25,9 +25,8 @@ export const parseExcelFile = async (file: File): Promise<Omit<Song, 'id' | 'pro
     return jsonData.map((row) => {
         // Safe access with fallback
         const rawContent = row['Drop a track or video link (Short answer, required)'] || '';
-        // Extract the first http/https URL found in the string
-        const urlMatch = String(rawContent).match(/(https?:\/\/[^\s]+)/);
-        const url = urlMatch ? urlMatch[0] : '';
+        // Extract the first http/https URL using our utility
+        const url = extractUrl(String(rawContent)) || '';
 
         const platform = detectPlatform(url);
         const artistName = row['BandLab Username (Short answer, required)'] || 'Unknown Artist';
