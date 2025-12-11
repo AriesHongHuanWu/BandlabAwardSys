@@ -26,19 +26,31 @@ export async function onRequestGet(context) {
         // -------------------------------------------------------------
         // NEW STRATEGY (High Priority): API Direct Audio Fetch
         // -------------------------------------------------------------
+
+        // 0. CLEAN THE URL (in case it contains "Check this out... https://...")
+        const urlMatch = url.match(/(https?:\/\/[^\s"<>]+)/);
+        const cleanUrl = urlMatch ? urlMatch[0] : url;
+
         // Try to find the postId (UUID) and call the API to get the raw .m4a
         // This bypasses embedding issues entirely by playing the file directly.
 
         // 1. Look for UUID in URL (if present)
         let postId = null;
-        const uuidMatch = url.match(/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/);
-        if (uuidMatch) {
-            postId = uuidMatch[0];
+        // Updated regex to support underscores and longer IDs often found in new BandLab links
+        // e.g. 6cd840d3655346fb94e9055a67acba86_30941b0200d2f011819b6045bd3096b1
+        const idMatch = cleanUrl.match(/(post|track)\/([a-zA-Z0-9-_]+)/);
+
+        if (idMatch && idMatch[2]) {
+            postId = idMatch[2];
+        } else {
+            // Fallback to strict UUID if path regex fails (e.g. just a UUID string?)
+            const uuidMatch = cleanUrl.match(/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/);
+            if (uuidMatch) postId = uuidMatch[0];
         }
 
         // 2. If not in URL, look for it in the HTML (e.g. property="al:android:url" content="bandlab://posts/UUID")
         if (!postId) {
-            const alMatch = html.match(/bandlab:\/\/posts\/([a-fA-F0-9-]+)/);
+            const alMatch = html.match(/bandlab:\/\/posts\/([a-zA-Z0-9-_]+)/);
             if (alMatch) postId = alMatch[1];
         }
 
@@ -78,9 +90,7 @@ export async function onRequestGet(context) {
         // FALLBACK: Embed ID Scraping
         // -------------------------------------------------------------
         // Strategy 1: Look for the specific 'embed' URL pattern in the HTML source
-        // Common in og:video:secure_url or similar metadata
-        // Example: content="https://www.bandlab.com/embed/?id=..."
-        const embedUrlMatch = html.match(/https:\/\/www\.bandlab\.com\/embed\/\?id=([a-zA-Z0-9-]+)/);
+        const embedUrlMatch = html.match(/https:\/\/www\.bandlab\.com\/embed\/\?id=([a-zA-Z0-9-_]+)/);
         if (embedUrlMatch && embedUrlMatch[1]) {
             return new Response(JSON.stringify({ id: embedUrlMatch[1] }), {
                 headers: { 'Content-Type': 'application/json' },
@@ -88,10 +98,7 @@ export async function onRequestGet(context) {
         }
 
         // Strategy 2: Try to find the input with the embed code
-        // <input ... value="<iframe ... src=&quot;https://www.bandlab.com/embed/?id=ID&quot; ...>">
-
-        // Regex to match the id inside the iframe src
-        const embedIdMatch = html.match(/src="https:\/\/www\.bandlab\.com\/embed\/\?id=([a-zA-Z0-9-]+)"/);
+        const embedIdMatch = html.match(/src="https:\/\/www\.bandlab\.com\/embed\/\?id=([a-zA-Z0-9-_]+)"/);
 
         if (embedIdMatch && embedIdMatch[1]) {
             return new Response(JSON.stringify({ id: embedIdMatch[1] }), {

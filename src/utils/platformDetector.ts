@@ -48,8 +48,8 @@ export const getEmbedUrl = (rawUrl: string, platform: Platform): string => {
             }
 
             // 3. Handle /post/UUID or /track/UUID format
-            // Regex to catch the ID after /post/ or /track/
-            const match = urlObj.pathname.match(/\/(post|track)\/([a-zA-Z0-9-]+)/);
+            // Regex to catch the ID after /post/ or /track/, identifying underscores
+            const match = urlObj.pathname.match(/\/(post|track)\/([a-zA-Z0-9-_]+)/);
             if (match && match[2]) {
                 let id = match[2];
                 // User-observed pattern: ID 'c4...' maps to Embed ID 'c1...'
