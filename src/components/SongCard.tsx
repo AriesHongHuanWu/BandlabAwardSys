@@ -35,7 +35,7 @@ export const SongCard: React.FC<SongCardProps> = ({ song, onApprove, onReject })
             </div>
 
             <div className="aspect-video w-full bg-black/50 rounded-lg overflow-hidden relative">
-                {(isSpotify || platform === 'bandlab') ? (
+                {(isSpotify || (platform === 'bandlab' && getEmbedUrl(url, platform).includes('/embed/'))) ? (
                     <iframe
                         src={getEmbedUrl(url, platform)}
                         className="w-full h-full"
