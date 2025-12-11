@@ -1,226 +1,169 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
+import { useAuth } from '../hooks/useAuth';
 import { useSongs } from '../hooks/useSongs';
 import { SongCard } from './SongCard';
 import { ImportUpload } from './ImportUpload';
 import { AdminPanel } from './AdminPanel';
 import { SongDetailModal } from './SongDetailModal';
-import type { Vote, Song } from '../types';
-import { LayoutGrid, Table as TableIcon, Download, LogOut, User as UserIcon, Shield, ArrowLeft } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import * as XLSX from 'xlsx';
-import type { User } from 'firebase/auth';
-import { useAuth } from '../hooks/useAuth';
+import { LogOut, LayoutGrid, List, Settings, ChevronLeft, Users } from 'lucide-react';
+import { useProjects } from '../hooks/useProjects';
 import { usePresence } from '../hooks/usePresence';
+import type { Song } from '../types';
 
 interface DashboardProps {
-    user: User;
+    onLogout: () => void;
     projectId: string;
     onBack: () => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ user, projectId, onBack }) => {
-    const { songs, loading, voteSong, updateStatus } = useSongs(projectId);
-    const { activeUsers } = usePresence(projectId);
-    const { logout } = useAuth();
-    const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
-    const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
-    const [showAdminPanel, setShowAdminPanel] = useState(false);
+export const Dashboard: React.FC<DashboardProps> = ({ onLogout, projectId, onBack }) => {
+    const { user, isAdmin } = useAuth();
+    const { songs, loading, error, updateStatus, addSongs } = useSongs(projectId);
+    const { activeUsers } = usePresence(projectId, user);
+
+    // Project Info
+    const { projects } = useProjects();
+    const currentProject = projects.find(p => p.id === projectId);
+
+    const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+    const [showAdmin, setShowAdmin] = useState(false);
     const [selectedSong, setSelectedSong] = useState<Song | null>(null);
 
-    const filteredSongs = useMemo(() => {
-        return songs.filter(s => filterStatus === 'all' ? true : s.status === filterStatus);
-    }, [songs, filterStatus]);
+    const filteredSongs = songs.filter(song => {
+        if (filter === 'all') return true;
+        return song.status === filter;
+    });
 
-    const handleVote = (songId: string, type: 'approve' | 'reject') => {
-        const vote: Vote = {
-            userId: user.uid,
-            userName: user.displayName || user.email || 'Anonymous Screener',
-            vote: type,
-            timestamp: Date.now()
-        };
-        voteSong(songId, vote);
-        updateStatus(songId, type === 'approve' ? 'approved' : 'rejected');
+    const stats = {
+        total: songs.length,
+        pending: songs.filter(s => s.status === 'pending').length,
+        approved: songs.filter(s => s.status === 'approved').length,
+        rejected: songs.filter(s => s.status === 'rejected').length
     };
 
-    const exportData = () => {
-        const ws = XLSX.utils.json_to_sheet(songs.map(s => ({
-            Artist: s.artistName,
-            URL: s.url,
-            Platform: s.platform,
-            Status: s.status,
-            Votes: s.votes.length,
-            Category: s.submissionCategory,
-            Submitter: s.submitterEmail
-        })));
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Songs");
-        XLSX.writeFile(wb, "Filtered_Songs.xlsx");
-    };
-
-    if (loading) return <div className="min-h-screen flex items-center justify-center text-white">Loading...</div>;
+    if (showAdmin) {
+        return <AdminPanel onClose={() => setShowAdmin(false)} />;
+    }
 
     return (
-        <div className="min-h-screen p-8 space-y-8">
-            <header className="flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="min-h-screen bg-background">
+            {/* Top Bar */}
+            <header className="sticky top-0 z-40 bg-surface/80 backdrop-blur-md border-b border-border px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                    <button
-                        onClick={onBack}
-                        className="p-2 rounded-full bg-white/5 hover:bg-white/10 text-white/70 transition-colors"
-                        title="Back to Projects"
-                    >
-                        <ArrowLeft size={24} />
+                    <button onClick={onBack} className="p-2 -ml-2 rounded-full hover:bg-surfaceHighlight text-textSecondary hover:text-text transition-colors">
+                        <ChevronLeft size={24} />
                     </button>
                     <div>
-                        <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                            Music Screener
+                        <h1 className="text-xl font-bold text-text flex items-center gap-2">
+                            {currentProject?.name || 'Project Dashboard'}
+                            <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-bold uppercase tracking-wider">Beta</span>
                         </h1>
-                        <div className="flex items-center gap-2">
-                            <p className="text-white/50">Project ID: {projectId.slice(0, 8)}...</p>
-                            {activeUsers.length > 0 && (
-                                <div className="flex -space-x-2">
-                                    {activeUsers.map(u => (
-                                        <div key={u.uid} className="relative group" title={u.displayName || u.email || 'User'}>
-                                            <div className="w-8 h-8 rounded-full bg-primary/20 border-2 border-background flex items-center justify-center text-xs font-bold text-primary overflow-hidden">
-                                                {u.photoURL ? <img src={u.photoURL} alt="avi" /> : (u.displayName?.[0] || 'U')}
-                                            </div>
-                                            <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-background"></div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+                        <p className="text-xs text-textSecondary font-medium">Welcome back, {user?.displayName}</p>
                     </div>
                 </div>
 
-                <div className="flex gap-4 items-center">
-                    <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-white/70">
-                        <UserIcon size={14} />
-                        <span>{user.displayName || user.email}</span>
+                <div className="flex items-center gap-3">
+                    {/* Presence */}
+                    <div className="flex -space-x-2 mr-4">
+                        {activeUsers.slice(0, 5).map(u => (
+                            <img key={u.uid} src={u.photoURL || `https://ui-avatars.com/api/?name=${u.displayName}`}
+                                className="w-8 h-8 rounded-full border-2 border-surface shadow-sm" title={u.displayName} />
+                        ))}
+                        {activeUsers.length > 5 && (
+                            <div className="w-8 h-8 rounded-full bg-surfaceHighlight border-2 border-surface flex items-center justify-center text-xs font-bold text-textSecondary">
+                                +{activeUsers.length - 5}
+                            </div>
+                        )}
                     </div>
 
-                    <button
-                        onClick={() => setShowAdminPanel(true)}
-                        className="p-2 rounded-lg bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 transition-colors"
-                        title="Admin Management"
-                    >
-                        <Shield size={20} />
-                    </button>
-
-                    <button
-                        onClick={logout}
-                        className="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
-                        title="Sign Out"
-                    >
+                    {isAdmin && (
+                        <button onClick={() => setShowAdmin(true)} className="p-2 rounded-full text-textSecondary hover:text-primary hover:bg-surfaceHighlight transition-colors" title="Admin Settings">
+                            <Settings size={20} />
+                        </button>
+                    )}
+                    <button onClick={onLogout} className="p-2 rounded-full text-textSecondary hover:text-red-600 hover:bg-red-50 transition-colors" title="Logout">
                         <LogOut size={20} />
-                    </button>
-                    <div className="w-px h-6 bg-white/10 mx-1" />
-
-                    <button
-                        onClick={() => setViewMode('grid')}
-                        className={`p-2 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white'}`}
-                    >
-                        <LayoutGrid />
-                    </button>
-                    <button
-                        onClick={() => setViewMode('table')}
-                        className={`p-2 rounded-lg transition-colors ${viewMode === 'table' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white'}`}
-                    >
-                        <TableIcon />
-                    </button>
-                    <button
-                        onClick={exportData}
-                        className="p-2 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 transition-colors"
-                        title="Export to Excel"
-                    >
-                        <Download />
                     </button>
                 </div>
             </header>
 
-            {showAdminPanel && <AdminPanel onClose={() => setShowAdminPanel(false)} />}
+            {/* Main Content */}
+            <main className="max-w-7xl mx-auto px-6 py-8">
+                {/* Stats & Actions */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                    {/* Stats Cards */}
+                    <div className="material-card p-6 flex flex-col justify-between bg-white border-l-4 border-l-primary">
+                        <span className="text-textSecondary text-sm font-medium uppercase tracking-wider">Total Songs</span>
+                        <span className="text-3xl font-bold text-text mt-1">{stats.total}</span>
+                    </div>
+                    <div className="material-card p-6 flex flex-col justify-between bg-white border-l-4 border-l-yellow-400">
+                        <span className="text-textSecondary text-sm font-medium uppercase tracking-wider">Pending</span>
+                        <span className="text-3xl font-bold text-text mt-1">{stats.pending}</span>
+                    </div>
+                    <div className="material-card p-6 flex flex-col justify-between bg-white border-l-4 border-l-green-500">
+                        <span className="text-textSecondary text-sm font-medium uppercase tracking-wider">Approved</span>
+                        <span className="text-3xl font-bold text-text mt-1">{stats.approved}</span>
+                    </div>
 
-            <SongDetailModal song={selectedSong} onClose={() => setSelectedSong(null)} />
-
-            {songs.length === 0 && (
-                <section className="max-w-xl mx-auto">
-                    <ImportUpload projectId={projectId} />
-                </section>
-            )}
-
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-                {(['all', 'pending', 'approved', 'rejected'] as const).map(status => (
-                    <button
-                        key={status}
-                        onClick={() => setFilterStatus(status)}
-                        className={`px-6 py-2.5 rounded-full capitalize text-sm font-medium transition-all duration-300 ${filterStatus === status
-                            ? 'bg-primary text-black shadow-primary/20 shadow-lg scale-105'
-                            : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'
-                            }`}
-                    >
-                        {status} {status !== 'all' && `(${songs.filter(s => s.status === status).length})`}
-                    </button>
-                ))}
-            </div>
-
-            {viewMode === 'grid' ? (
-                <motion.div
-                    layout
-                    className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
-                >
-                    <AnimatePresence mode="popLayout">
-                        {filteredSongs.map(song => (
-                            <motion.div
-                                key={song.id}
-                                layoutId={`song-card-${song.id}`}
-                                initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                                animate={{ opacity: 1, scale: 1, y: 0 }}
-                                exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
-                                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                            >
-                                <SongCard
-                                    song={song}
-                                    onApprove={() => handleVote(song.id, 'approve')}
-                                    onReject={() => handleVote(song.id, 'reject')}
-                                    onInfoClick={() => setSelectedSong(song)}
-                                />
-                            </motion.div>
-                        ))}
-                    </AnimatePresence>
-                </motion.div>
-            ) : (
-                <div className="glass rounded-xl overflow-hidden p-1">
-                    <table className="w-full text-left text-sm text-white/80">
-                        <thead className="bg-white/5 text-xs uppercase font-bold text-white/50">
-                            <tr>
-                                <th className="p-4 rounded-tl-lg">Artist</th>
-                                <th className="p-4">Platform</th>
-                                <th className="p-4">Status</th>
-                                <th className="p-4 rounded-tr-lg">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-white/5">
-                            {filteredSongs.map(song => (
-                                <tr key={song.id}
-                                    className="hover:bg-white/5 transition-colors cursor-pointer group"
-                                    onClick={() => setSelectedSong(song)}
-                                >
-                                    <td className="p-4 font-medium text-white group-hover:text-primary transition-colors">{song.artistName}</td>
-                                    <td className="p-4 capitalize">{song.platform}</td>
-                                    <td className="p-4">
-                                        <span className={`px-2 py-0.5 rounded text-xs lowercase border ${song.status === 'approved' ? 'bg-green-500/10 border-green-500/20 text-green-400' :
-                                            song.status === 'rejected' ? 'bg-red-500/10 border-red-500/20 text-red-400' :
-                                                'bg-yellow-500/10 border-yellow-500/20 text-yellow-400'
-                                            }`}>{song.status}</span>
-                                    </td>
-                                    <td className="p-4 text-white/40 group-hover:text-white transition-colors">
-                                        View Details
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                    {/* Upload Action */}
+                    <div className="material-card p-4 flex flex-col justify-center items-center bg-surfaceHighlight/50 border-dashed border-2 border-border hover:border-primary/50 transition-colors cursor-pointer group">
+                        <ImportUpload onImport={addSongs} projectId={projectId} />
+                    </div>
                 </div>
-            )}
+
+                {/* Filters */}
+                <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2">
+                    {['all', 'pending', 'approved', 'rejected'].map(f => (
+                        <button
+                            key={f}
+                            onClick={() => setFilter(f as any)}
+                            className={`px-4 py-2 rounded-full text-sm font-bold capitalize transition-all whitespace-nowrap ${filter === f
+                                    ? 'bg-text text-white shadow-material-md'
+                                    : 'bg-surface text-textSecondary hover:bg-surfaceHighlight border border-border'
+                                }`}
+                        >
+                            {f}
+                        </button>
+                    ))}
+                    <div className="ml-auto hidden md:flex items-center gap-2 bg-surface p-1 rounded-lg border border-border">
+                        <button className="p-1.5 rounded hover:bg-surfaceHighlight text-text"><LayoutGrid size={18} /></button>
+                        <button className="p-1.5 rounded hover:bg-surfaceHighlight text-textSecondary"><List size={18} /></button>
+                    </div>
+                </div>
+
+                {/* Song Grid */}
+                {loading ? (
+                    <div className="flex items-center justify-center py-20">
+                        <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent"></div>
+                    </div>
+                ) : filteredSongs.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-20 text-textSecondary space-y-4">
+                        <div className="w-16 h-16 rounded-full bg-surfaceHighlight flex items-center justify-center">
+                            <List size={32} className="opacity-50" />
+                        </div>
+                        <p className="text-lg font-medium">No songs found in this category.</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {filteredSongs.map(song => (
+                            <SongCard
+                                key={song.id}
+                                song={song}
+                                onApprove={() => updateStatus(song.id!, 'approved')}
+                                onReject={() => updateStatus(song.id!, 'rejected')}
+                                onOpenDetails={() => setSelectedSong(song)}
+                            />
+                        ))}
+                    </div>
+                )}
+            </main>
+
+            {/* Modal */}
+            <SongDetailModal
+                song={selectedSong}
+                isOpen={!!selectedSong}
+                onClose={() => setSelectedSong(null)}
+            />
         </div>
     );
 };
