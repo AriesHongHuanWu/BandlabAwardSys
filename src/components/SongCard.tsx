@@ -18,7 +18,13 @@ export const SongCard: React.FC<SongCardProps> = ({ song, onApprove, onReject })
     const [resolving, setResolving] = useState(false);
 
     useEffect(() => {
-        if (platform === 'bandlab') {
+        if (platform === 'bandlab' && url) {
+            // Only attempt resolution for posts and tracks
+            if (!url.includes('/post/') && !url.includes('/track/')) {
+                setResolvedUrl(getEmbedUrl(url, platform));
+                return;
+            }
+
             const embedUrl = getEmbedUrl(url, platform);
 
             // If the synchronous logic found a valid embed URL (has /embed/), use it.

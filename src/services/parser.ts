@@ -24,8 +24,11 @@ export const parseExcelFile = async (file: File): Promise<Omit<Song, 'id' | 'pro
 
     return jsonData.map((row) => {
         // Safe access with fallback
-        const rawUrl = row['Drop a track or video link (Short answer, required)'] || '';
-        const url = (typeof rawUrl === 'string' ? rawUrl.trim() : String(rawUrl)).trim();
+        const rawContent = row['Drop a track or video link (Short answer, required)'] || '';
+        // Extract the first http/https URL found in the string
+        const urlMatch = String(rawContent).match(/(https?:\/\/[^\s]+)/);
+        const url = urlMatch ? urlMatch[0] : '';
+
         const platform = detectPlatform(url);
         const artistName = row['BandLab Username (Short answer, required)'] || 'Unknown Artist';
 
