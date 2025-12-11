@@ -8,15 +8,15 @@ export default {
     theme: {
         extend: {
             colors: {
-                background: 'var(--background)',
-                surface: 'var(--surface)',
-                surfaceHighlight: 'var(--surface-highlight)',
-                primary: 'var(--primary)',
-                secondary: 'var(--secondary)',
-                accent: 'var(--accent)',
-                text: 'var(--text)',
-                textSecondary: 'var(--text-secondary)',
-                border: 'var(--border)',
+                background: 'rgb(var(--background) / <alpha-value>)',
+                surface: 'rgb(var(--surface) / <alpha-value>)',
+                surfaceHighlight: 'rgb(var(--surface-highlight) / <alpha-value>)',
+                primary: 'rgb(var(--primary) / <alpha-value>)',
+                secondary: 'rgb(var(--secondary) / <alpha-value>)',
+                accent: 'rgb(var(--accent) / <alpha-value>)',
+                text: 'rgb(var(--text) / <alpha-value>)',
+                textSecondary: 'rgb(var(--text-secondary) / <alpha-value>)',
+                border: 'rgb(var(--border) / <alpha-value>)',
             },
             fontFamily: {
                 sans: ['Inter', 'Roboto', 'sans-serif'],
