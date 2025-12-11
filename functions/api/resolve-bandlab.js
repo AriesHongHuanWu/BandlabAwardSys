@@ -23,8 +23,6 @@ export async function onRequestGet(context) {
 
         const html = await response.text();
 
-        const html = await response.text();
-
         // -------------------------------------------------------------
         // NEW STRATEGY (High Priority): API Direct Audio Fetch
         // -------------------------------------------------------------
