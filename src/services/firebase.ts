@@ -10,8 +10,14 @@ const firebaseConfig = {
     appId: import.meta.env.VITE_FIREBASE_APP_ID
 };
 
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
+
+// ... existing config ...
+
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
+export const auth = getAuth(app);
+export const googleProvider = new GoogleAuthProvider();
 
 // Helper collection references
 export const songsCollection = collection(db, "songs");

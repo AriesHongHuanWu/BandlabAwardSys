@@ -3,24 +3,21 @@ import { useSongs } from '../hooks/useSongs';
 import { SongCard } from './SongCard';
 import { ImportUpload } from './ImportUpload';
 import type { Vote } from '../types';
-import { LayoutGrid, Table as TableIcon, Download } from 'lucide-react';
+import { LayoutGrid, Table as TableIcon, Download, LogOut, User as UserIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
+import type { User } from 'firebase/auth';
+import { useAuth } from '../hooks/useAuth';
 
-export const Dashboard: React.FC = () => {
+interface DashboardProps {
+    user: User;
+}
+
+export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     const { songs, loading, voteSong, updateStatus } = useSongs();
+    const { logout } = useAuth();
     const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
     const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
-
-    // Mock User ID
-    const userId = useMemo(() => {
-        let id = localStorage.getItem('screener_id');
-        if (!id) {
-            id = `screener-${Math.random().toString(36).substr(2, 9)}`;
-            localStorage.setItem('screener_id', id);
-        }
-        return id;
-    }, []);
 
     const filteredSongs = useMemo(() => {
         return songs.filter(s => filterStatus === 'all' ? true : s.status === filterStatus);
@@ -28,8 +25,8 @@ export const Dashboard: React.FC = () => {
 
     const handleVote = (songId: string, type: 'approve' | 'reject') => {
         const vote: Vote = {
-            userId,
-            userName: 'Screener', // In real app, get from auth
+            userId: user.uid,
+            userName: user.displayName || user.email || 'Anonymous Screener',
             vote: type,
             timestamp: Date.now()
         };
@@ -65,7 +62,20 @@ export const Dashboard: React.FC = () => {
                     <p className="text-white/50">Collaborative filtering dashboard</p>
                 </div>
 
-                <div className="flex gap-4">
+                <div className="flex gap-4 items-center">
+                    <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-white/70">
+                        <UserIcon size={14} />
+                        <span>{user.displayName || user.email}</span>
+                    </div>
+                    <button
+                        onClick={logout}
+                        className="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
+                        title="Sign Out"
+                    >
+                        <LogOut size={20} />
+                    </button>
+                    <div className="w-px h-6 bg-white/10 mx-1" />
+
                     <button
                         onClick={() => setViewMode('grid')}
                         className={`p-2 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white'}`}
