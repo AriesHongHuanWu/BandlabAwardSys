@@ -23,7 +23,17 @@ export async function onRequestGet(context) {
 
         const html = await response.text();
 
-        // 1. Try to find the input with the embed code
+        // Strategy 1: Look for the specific 'embed' URL pattern in the HTML source
+        // Common in og:video:secure_url or similar metadata
+        // Example: content="https://www.bandlab.com/embed/?id=..."
+        const embedUrlMatch = html.match(/https:\/\/www\.bandlab\.com\/embed\/\?id=([a-zA-Z0-9-]+)/);
+        if (embedUrlMatch && embedUrlMatch[1]) {
+            return new Response(JSON.stringify({ id: embedUrlMatch[1] }), {
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }
+
+        // Strategy 2: Try to find the input with the embed code
         // <input ... value="<iframe ... src=&quot;https://www.bandlab.com/embed/?id=ID&quot; ...>">
 
         // Regex to match the id inside the iframe src
@@ -35,7 +45,7 @@ export async function onRequestGet(context) {
             });
         }
 
-        // 2. Try to find the 'revId' or 'revisionId' in the JSON state often found in scripts
+        // Strategy 3: Try to find the 'revId' or 'revisionId' in the JSON state often found in scripts
         // This is more complex but more robust if the input isn't there.
 
         return new Response(JSON.stringify({ error: 'Could not find embed ID in page' }), {
