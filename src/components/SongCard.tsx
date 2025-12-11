@@ -16,6 +16,7 @@ export const SongCard: React.FC<SongCardProps> = ({ song, onApprove, onReject })
 
     const [resolvedUrl, setResolvedUrl] = useState<string>('');
     const [resolving, setResolving] = useState(false);
+    const [metadata, setMetadata] = useState<{ title?: string; artist?: string; cover?: string }>({});
 
     useEffect(() => {
         if (platform === 'bandlab' && url) {
@@ -30,6 +31,11 @@ export const SongCard: React.FC<SongCardProps> = ({ song, onApprove, onReject })
                         // Use the NEW proxy endpoint for playback
                         const proxyUrl = `/api/stream-audio?url=${encodeURIComponent(data.audioUrl)}`;
                         setResolvedUrl(proxyUrl);
+                        setMetadata({
+                            title: data.title,
+                            artist: data.artist,
+                            cover: data.cover
+                        });
                     } else if (data.id) {
                         setResolvedUrl(`https://www.bandlab.com/embed/?id=${data.id}`);
                     } else {
@@ -78,7 +84,9 @@ export const SongCard: React.FC<SongCardProps> = ({ song, onApprove, onReject })
                     <div className="w-full h-full flex items-center justify-center bg-zinc-900 p-4">
                         <AudioPlayer
                             src={resolvedUrl || url}
-                            artistName={artistName}
+                            artistName={metadata.artist || artistName}
+                            songName={metadata.title}
+                            coverUrl={metadata.cover}
                         />
                     </div>
                 )}

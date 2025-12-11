@@ -76,7 +76,27 @@ export async function onRequestGet(context) {
                     }
 
                     if (audioUrl) {
-                        return new Response(JSON.stringify({ audioUrl }), {
+                        // Extract metadata
+                        const title = (data.revision && data.revision.song && data.revision.song.name)
+                            ? data.revision.song.name
+                            : (data.caption || 'Untitled');
+
+                        const artist = (data.creator && data.creator.name)
+                            ? data.creator.name
+                            : 'Unknown Artist';
+
+                        // Artwork Priority: Picture -> Song Picture -> Creator Picture
+                        let cover = null;
+                        if (data.picture && data.picture.url) cover = data.picture.url;
+                        else if (data.revision && data.revision.song && data.revision.song.picture && data.revision.song.picture.url) cover = data.revision.song.picture.url;
+                        else if (data.creator && data.creator.picture && data.creator.picture.url) cover = data.creator.picture.url;
+
+                        return new Response(JSON.stringify({
+                            audioUrl,
+                            title,
+                            artist,
+                            cover
+                        }), {
                             headers: { 'Content-Type': 'application/json' },
                         });
                     }

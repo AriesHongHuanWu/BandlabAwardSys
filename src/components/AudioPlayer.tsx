@@ -4,9 +4,11 @@ import { Play, Pause } from 'lucide-react';
 interface AudioPlayerProps {
     src: string;
     artistName: string;
+    songName?: string;
+    coverUrl?: string;
 }
 
-export const AudioPlayer: React.FC<AudioPlayerProps> = ({ src, artistName }) => {
+export const AudioPlayer: React.FC<AudioPlayerProps> = ({ src, artistName, songName, coverUrl }) => {
     const audioRef = useRef<HTMLAudioElement>(null);
     const [isPlaying, setIsPlaying] = useState(false);
     const [progress, setProgress] = useState(0);
@@ -55,16 +57,31 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ src, artistName }) => 
                 loop={false}
             />
 
-            <button
-                onClick={togglePlay}
-                className="w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-full bg-primary text-black hover:scale-105 transition-all shadow-glow"
-            >
-                {isPlaying ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" className="ml-0.5" />}
-            </button>
+            <div className="relative group">
+                <div className={`absolute -inset-1 rounded-full opacity-20 blur-sm transition-all duration-300 ${isPlaying ? 'bg-primary animate-pulse' : 'bg-transparent'}`}></div>
+                <button
+                    onClick={togglePlay}
+                    className="w-12 h-12 relative flex-shrink-0 flex items-center justify-center rounded-full bg-zinc-800 border border-white/10 text-white hover:bg-zinc-700 hover:scale-105 transition-all overflow-hidden"
+                >
+                    {coverUrl ? (
+                        <>
+                            <img src={coverUrl} alt="Cover" className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${isPlaying ? 'opacity-30' : 'opacity-100'}`} />
+                            <div className={`relative z-10 ${!isPlaying && 'opacity-0 group-hover:opacity-100 transition-opacity'}`}>
+                                {isPlaying ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" className="ml-0.5" />}
+                            </div>
+                        </>
+                    ) : (
+                        isPlaying ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" className="ml-0.5" />
+                    )}
+                </button>
+            </div>
 
             <div className="flex-1 flex flex-col gap-1 min-w-0">
                 <div className="flex justify-between items-end text-xs text-secondary font-medium px-1">
-                    <span className="truncate max-w-[150px] text-white/90">{artistName}</span>
+                    <span className="truncate max-w-[200px] text-white/90">
+                        <span className="text-primary font-bold">{artistName}</span>
+                        {songName && <span className="text-zinc-400"> - {songName}</span>}
+                    </span>
                     <span>{formatTime(progress)} / {formatTime(duration)}</span>
                 </div>
                 <input
