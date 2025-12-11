@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import ReactPlayer from 'react-player';
 import type { Song } from '../types';
 import { getEmbedUrl } from '../utils/platformDetector';
 import { Check, X, ExternalLink } from 'lucide-react';
+import { AudioPlayer } from './AudioPlayer';
 
 interface SongCardProps {
     song: Song;
@@ -19,45 +19,30 @@ export const SongCard: React.FC<SongCardProps> = ({ song, onApprove, onReject })
 
     useEffect(() => {
         if (platform === 'bandlab' && url) {
-            // Only attempt resolution for posts and tracks
-            if (!url.includes('/post/') && !url.includes('/track/')) {
-                setResolvedUrl(getEmbedUrl(url, platform));
-                return;
-            }
-
+            // ALWAYS resolve BandLab server-side to check for M4A first
+            setResolving(true);
             const embedUrl = getEmbedUrl(url, platform);
 
-            // If the synchronous logic found a valid embed URL (has /embed/), use it.
-            if (embedUrl.includes('/embed/')) {
-                setResolvedUrl(embedUrl);
-            } else {
-                // Otherwise, try to resolve via our backend function
-                setResolving(true);
-                // Use a relative path for the API call, works in dev and prod if proxy/functions set up
-                fetch(`/api/resolve-bandlab?url=${encodeURIComponent(url)}`)
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.audioUrl) {
-                            // High priority: Direct Audio File
-                            setResolvedUrl(data.audioUrl);
-                        } else if (data.id) {
-                            // Fallback: Embed
-                            setResolvedUrl(`https://www.bandlab.com/embed/?id=${data.id}`);
-                        } else {
-                            setResolvedUrl(embedUrl); // Fallback to original guess
-                        }
-                    })
-                    .catch(() => setResolvedUrl(embedUrl))
-                    .finally(() => setResolving(false));
-            }
+            fetch(`/api/resolve-bandlab?url=${encodeURIComponent(url)}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.audioUrl) {
+                        // Use the NEW proxy endpoint for playback
+                        const proxyUrl = `/api/stream-audio?url=${encodeURIComponent(data.audioUrl)}`;
+                        setResolvedUrl(proxyUrl);
+                    } else if (data.id) {
+                        setResolvedUrl(`https://www.bandlab.com/embed/?id=${data.id}`);
+                    } else {
+                        setResolvedUrl(embedUrl);
+                    }
+                })
+                .catch(() => setResolvedUrl(embedUrl))
+                .finally(() => setResolving(false));
         } else {
             // For other platforms, just use the synchronous result
             setResolvedUrl(getEmbedUrl(url, platform));
         }
     }, [url, platform]);
-
-    // Cast ReactPlayer to any to avoid strict type issues with 'url' prop in some TS configurations
-    const Player = ReactPlayer as any;
 
     return (
         <div className="glass-card p-4 flex flex-col gap-4 group">
@@ -90,14 +75,10 @@ export const SongCard: React.FC<SongCardProps> = ({ song, onApprove, onReject })
                         allowTransparency
                     />
                 ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-zinc-900">
-                        {/* Pass resolvedUrl if available (for M4A), otherwise original url */}
-                        <Player
-                            url={resolvedUrl || url}
-                            width="100%"
-                            height={platform === 'bandlab' ? "50px" : "100%"}
-                            controls
-                            className={platform === 'bandlab' ? "bg-transparent" : ""}
+                    <div className="w-full h-full flex items-center justify-center bg-zinc-900 p-4">
+                        <AudioPlayer
+                            src={resolvedUrl || url}
+                            artistName={artistName}
                         />
                     </div>
                 )}
