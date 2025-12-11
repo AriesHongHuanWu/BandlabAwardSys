@@ -37,10 +37,14 @@ export const SongCard: React.FC<SongCardProps> = ({ song, onApprove, onReject })
                 fetch(`/api/resolve-bandlab?url=${encodeURIComponent(url)}`)
                     .then(res => res.json())
                     .then(data => {
-                        if (data.id) {
+                        if (data.audioUrl) {
+                            // High priority: Direct Audio File
+                            setResolvedUrl(data.audioUrl);
+                        } else if (data.id) {
+                            // Fallback: Embed
                             setResolvedUrl(`https://www.bandlab.com/embed/?id=${data.id}`);
                         } else {
-                            setResolvedUrl(embedUrl); // Fallback
+                            setResolvedUrl(embedUrl); // Fallback to original guess
                         }
                     })
                     .catch(() => setResolvedUrl(embedUrl))
@@ -86,13 +90,14 @@ export const SongCard: React.FC<SongCardProps> = ({ song, onApprove, onReject })
                         allowTransparency
                     />
                 ) : (
-                    <div className="w-full h-full">
+                    <div className="w-full h-full flex items-center justify-center bg-zinc-900">
+                        {/* Pass resolvedUrl if available (for M4A), otherwise original url */}
                         <Player
-                            url={url}
+                            url={resolvedUrl || url}
                             width="100%"
-                            height="100%"
+                            height={platform === 'bandlab' ? "50px" : "100%"}
                             controls
-                            light
+                            className={platform === 'bandlab' ? "bg-transparent" : ""}
                         />
                     </div>
                 )}
