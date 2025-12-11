@@ -72,16 +72,16 @@ export const SongCard: React.FC<SongCardProps> = ({ song, onApprove, onReject })
                     <div className="absolute inset-0 flex items-center justify-center text-white/50 animate-pulse">
                         <span className="text-sm">Resolving Link...</span>
                     </div>
-                ) : (isSpotify || (platform === 'bandlab' && resolvedUrl.includes('/embed/'))) ? (
+                ) : (isSpotify || (platform === 'bandlab' && resolvedUrl.includes('/embed/')) || platform === 'youtube') ? (
                     <iframe
                         src={resolvedUrl}
                         className="w-full h-full"
                         frameBorder="0"
-                        allow="encrypted-media; fullscreen"
+                        allow="encrypted-media; fullscreen; accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                         allowTransparency
                     />
                 ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-zinc-900 p-4">
+                    <div className="w-full h-full bg-zinc-900">
                         <AudioPlayer
                             src={resolvedUrl || url}
                             artistName={metadata.artist || artistName}

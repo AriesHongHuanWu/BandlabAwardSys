@@ -47,7 +47,15 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ src, artistName, songN
     };
 
     return (
-        <div className="w-full bg-black/40 backdrop-blur-md rounded-xl p-3 border border-white/10 flex items-center gap-3 shadow-lg">
+        <div className="w-full h-full relative flex flex-col justify-end p-4 group overflow-hidden">
+            {/* Background Blur */}
+            {coverUrl && (
+                <div className="absolute inset-0 z-0">
+                    <img src={coverUrl} alt="bg" className="w-full h-full object-cover blur-xl opacity-50 scale-110" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent"></div>
+                </div>
+            )}
+
             <audio
                 ref={audioRef}
                 src={src}
@@ -57,47 +65,57 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({ src, artistName, songN
                 loop={false}
             />
 
-            <div className="relative group">
-                <div className={`absolute -inset-1 rounded-full opacity-20 blur-sm transition-all duration-300 ${isPlaying ? 'bg-primary animate-pulse' : 'bg-transparent'}`}></div>
-                <button
-                    onClick={togglePlay}
-                    className="w-12 h-12 relative flex-shrink-0 flex items-center justify-center rounded-full bg-zinc-800 border border-white/10 text-white hover:bg-zinc-700 hover:scale-105 transition-all overflow-hidden"
-                >
-                    {coverUrl ? (
-                        <>
-                            <img src={coverUrl} alt="Cover" className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${isPlaying ? 'opacity-30' : 'opacity-100'}`} />
-                            <div className={`relative z-10 ${!isPlaying && 'opacity-0 group-hover:opacity-100 transition-opacity'}`}>
-                                {isPlaying ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" className="ml-0.5" />}
+            {/* Content */}
+            <div className="relative z-10 flex flex-col gap-3">
+                <div className="flex items-center gap-4">
+                    <div className="relative">
+                        <div className={`absolute -inset-2 rounded-full opacity-20 blur-md transition-all duration-300 ${isPlaying ? 'bg-primary animate-pulse' : 'bg-transparent'}`}></div>
+                        <button
+                            onClick={togglePlay}
+                            className="w-14 h-14 relative flex-shrink-0 flex items-center justify-center rounded-full bg-white/10 border border-white/20 text-white hover:scale-105 transition-all backdrop-blur-md overflow-hidden"
+                        >
+                            {coverUrl && (
+                                <img src={coverUrl} alt="Cover" className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${isPlaying ? 'opacity-40' : 'opacity-80'}`} />
+                            )}
+                            <div className="relative z-10 drop-shadow-lg">
+                                {isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" className="ml-1" />}
                             </div>
-                        </>
-                    ) : (
-                        isPlaying ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" className="ml-0.5" />
-                    )}
-                </button>
-            </div>
+                        </button>
+                    </div>
 
-            <div className="flex-1 flex flex-col gap-1 min-w-0">
-                <div className="flex justify-between items-end text-xs text-secondary font-medium px-1">
-                    <span className="truncate max-w-[200px] text-white/90">
-                        <span className="text-primary font-bold">{artistName}</span>
-                        {songName && <span className="text-zinc-400"> - {songName}</span>}
-                    </span>
-                    <span>{formatTime(progress)} / {formatTime(duration)}</span>
+                    <div className="flex-1 min-w-0">
+                        <div className="text-white font-bold text-lg leading-tight truncate drop-shadow-md">
+                            {artistName}
+                        </div>
+                        {songName && (
+                            <div className="text-white/70 text-sm truncate font-medium">
+                                {songName}
+                            </div>
+                        )}
+                    </div>
                 </div>
-                <input
-                    type="range"
-                    min="0"
-                    max={duration || 100}
-                    value={progress}
-                    onChange={handleSeek}
-                    className="w-full h-1.5 bg-white/20 rounded-full appearance-none cursor-pointer accent-primary hover:bg-white/30 transition-colors"
-                />
-            </div>
 
-            {/* Volume (simulated for simplicity, or could implement fully) */}
-            {/*  <div className="w-8 h-8 flex items-center justify-center text-white/50">
-               <Volume2 size={16} />
-            </div> */}
+                <div className="space-y-1">
+                    <div className="flex justify-between text-[10px] text-white/50 font-medium px-0.5">
+                        <span>{formatTime(progress)}</span>
+                        <span>{formatTime(duration)}</span>
+                    </div>
+                    <div className="relative h-1 bg-white/10 rounded-full overflow-hidden">
+                        <div
+                            className="absolute left-0 top-0 h-full bg-primary transition-all duration-100 ease-linear shadow-[0_0_10px_rgba(var(--primary),0.5)]"
+                            style={{ width: `${(progress / (duration || 1)) * 100}%` }}
+                        />
+                        <input
+                            type="range"
+                            min="0"
+                            max={duration || 100}
+                            value={progress}
+                            onChange={handleSeek}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        />
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };

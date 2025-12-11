@@ -63,6 +63,27 @@ export const getEmbedUrl = (rawUrl: string, platform: Platform): string => {
         }
     }
 
+    if (platform === 'youtube') {
+        try {
+            const urlObj = new URL(url);
+            let videoId = '';
+
+            if (urlObj.hostname === 'youtu.be') {
+                videoId = urlObj.pathname.slice(1);
+            } else if (urlObj.pathname.includes('/watch')) {
+                videoId = urlObj.searchParams.get('v') || '';
+            } else if (urlObj.pathname.includes('/embed/')) {
+                return url;
+            }
+
+            if (videoId) {
+                return `https://www.youtube.com/embed/${videoId}`;
+            }
+        } catch (e) {
+            return url;
+        }
+    }
+
     // For others, we might return null if handled by ReactPlayer, or specific embed logic
     return url;
 };
