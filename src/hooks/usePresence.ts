@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { db, auth } from '../services/firebase';
+import { db } from '../services/firebase';
 import { collection, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 
 export interface PresenceUser {
@@ -11,14 +11,14 @@ export interface PresenceUser {
     lastActive: any;
 }
 
-export const usePresence = (projectId: string | null) => {
+export const usePresence = (projectId: string | null, user: any) => {
     const [activeUsers, setActiveUsers] = useState<PresenceUser[]>([]);
 
     // 1. Update my own presence
     useEffect(() => {
-        if (!auth.currentUser || !projectId) return;
+        if (!user || !projectId) return;
 
-        const { uid, email, displayName, photoURL } = auth.currentUser;
+        const { uid, email, displayName, photoURL } = user;
         const userRef = doc(db, 'presence', uid);
 
         const updatePresence = () => {
@@ -44,7 +44,7 @@ export const usePresence = (projectId: string | null) => {
             handleUnload();
             window.removeEventListener('beforeunload', handleUnload);
         };
-    }, [projectId]);
+    }, [projectId, user]);
 
     // 2. Listen to other users
     useEffect(() => {

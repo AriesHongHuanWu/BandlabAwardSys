@@ -70,7 +70,7 @@ export const SongDetailModal: React.FC<SongDetailModalProps> = ({ song, isOpen, 
                             <div className="flex-1 overflow-y-auto p-6 space-y-6">
                                 {/* Raw Data Grid */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    {displayData.map(([key, value], index) => (
+                                    {displayData.map(([key, value]) => (
                                         <div key={key} className="space-y-1">
                                             <h4 className="text-xs font-bold text-textSecondary uppercase tracking-wide opacity-80">
                                                 {key.replace(/_/g, ' ')}

@@ -15,6 +15,7 @@ export interface Song {
     submissionReason?: string;
     votes: Vote[];
     notes?: string;
+    originalRowData?: Record<string, any>; // Store raw excel row
     createdAt: number; // timestamp
 }
 

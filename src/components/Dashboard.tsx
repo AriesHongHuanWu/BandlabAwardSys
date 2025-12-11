@@ -5,7 +5,7 @@ import { SongCard } from './SongCard';
 import { ImportUpload } from './ImportUpload';
 import { AdminPanel } from './AdminPanel';
 import { SongDetailModal } from './SongDetailModal';
-import { LogOut, LayoutGrid, List, Settings, ChevronLeft, Users } from 'lucide-react';
+import { LogOut, LayoutGrid, List, Settings, ChevronLeft } from 'lucide-react';
 import { useProjects } from '../hooks/useProjects';
 import { usePresence } from '../hooks/usePresence';
 import type { Song } from '../types';
@@ -18,7 +18,7 @@ interface DashboardProps {
 
 export const Dashboard: React.FC<DashboardProps> = ({ onLogout, projectId, onBack }) => {
     const { user, isAdmin } = useAuth();
-    const { songs, loading, error, updateStatus, addSongs } = useSongs(projectId);
+    const { songs, loading, updateStatus } = useSongs(projectId); // Removed unused addSongs, error
     const { activeUsers } = usePresence(projectId, user);
 
     // Project Info
@@ -67,7 +67,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, projectId, onBac
                     <div className="flex -space-x-2 mr-4">
                         {activeUsers.slice(0, 5).map(u => (
                             <img key={u.uid} src={u.photoURL || `https://ui-avatars.com/api/?name=${u.displayName}`}
-                                className="w-8 h-8 rounded-full border-2 border-surface shadow-sm" title={u.displayName} />
+                                className="w-8 h-8 rounded-full border-2 border-surface shadow-sm" title={u.displayName || undefined} />
                         ))}
                         {activeUsers.length > 5 && (
                             <div className="w-8 h-8 rounded-full bg-surfaceHighlight border-2 border-surface flex items-center justify-center text-xs font-bold text-textSecondary">
@@ -106,8 +106,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, projectId, onBac
                     </div>
 
                     {/* Upload Action */}
-                    <div className="material-card p-4 flex flex-col justify-center items-center bg-surfaceHighlight/50 border-dashed border-2 border-border hover:border-primary/50 transition-colors cursor-pointer group">
-                        <ImportUpload onImport={addSongs} projectId={projectId} />
+                    <div className="h-full">
+                        <ImportUpload projectId={projectId} />
                     </div>
                 </div>
 
@@ -118,8 +118,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onLogout, projectId, onBac
                             key={f}
                             onClick={() => setFilter(f as any)}
                             className={`px-4 py-2 rounded-full text-sm font-bold capitalize transition-all whitespace-nowrap ${filter === f
-                                    ? 'bg-text text-white shadow-material-md'
-                                    : 'bg-surface text-textSecondary hover:bg-surfaceHighlight border border-border'
+                                ? 'bg-text text-white shadow-material-md'
+                                : 'bg-surface text-textSecondary hover:bg-surfaceHighlight border border-border'
                                 }`}
                         >
                             {f}

@@ -45,7 +45,8 @@ export const parseExcelFile = async (file: File): Promise<Omit<Song, 'id' | 'pro
             nominations: row['List up to 5 BandLab artists you think deserve a nomination'] || '',
             createdAt: Date.now(),
             votes: [],
-            notes: ''
+            notes: '',
+            originalRowData: row
         };
     });
 };

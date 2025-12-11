@@ -33,7 +33,7 @@ export const ImportUpload: React.FC<ImportUploadProps> = ({ projectId }) => {
     };
 
     return (
-        <div className="p-6 border-2 border-dashed border-white/20 rounded-xl bg-surface/30 hover:bg-surface/50 transition-colors text-center">
+        <div className="h-full p-6 border-2 border-dashed border-primary/20 rounded-xl bg-surfaceHighlight/30 hover:bg-surfaceHighlight/80 hover:border-primary/50 transition-all text-center flex flex-col items-center justify-center cursor-pointer group">
             <input
                 type="file"
                 accept=".xlsx, .xls"
@@ -42,13 +42,13 @@ export const ImportUpload: React.FC<ImportUploadProps> = ({ projectId }) => {
                 onChange={handleFile}
                 disabled={uploading}
             />
-            <label htmlFor="file-upload" className="cursor-pointer flex flex-col items-center gap-2">
-                <div className="p-4 bg-primary/20 rounded-full text-primary ring-1 ring-primary/50">
+            <label htmlFor="file-upload" className="cursor-pointer flex flex-col items-center gap-3 w-full h-full justify-center">
+                <div className="p-4 bg-primary/10 rounded-full text-primary ring-1 ring-primary/20 group-hover:scale-110 transition-transform duration-300">
                     {uploading ? <div className="animate-spin text-xl">⏳</div> : <FileSpreadsheet size={32} />}
                 </div>
                 <div>
-                    <h3 className="text-lg font-semibold text-white">Import Excel File</h3>
-                    <p className="text-white/50 text-sm">Upload the Artist Sign-Up responses</p>
+                    <h3 className="text-lg font-bold text-text group-hover:text-primary transition-colors">Import Excel</h3>
+                    <p className="text-textSecondary text-xs font-medium mt-1">Upload Artist Sign-Up responses</p>
                 </div>
             </label>
         </div>
