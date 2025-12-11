@@ -1,13 +1,5 @@
 @echo off
-set "PATH=%~dp0MinGit\cmd;%PATH%"
-
-echo Adding files...
-git add .
-
-echo Committing...
-git commit -m "Feat: Add Google Authentication and Route Protection"
-
-echo Pushing...
-git push -u origin main
-
-echo Done!
+set "GIT_CMD=%~dp0MinGit\cmd\git.exe"
+"%GIT_CMD%" add .
+"%GIT_CMD%" commit -m "Auto update: %date% %time%"
+"%GIT_CMD%" push origin main

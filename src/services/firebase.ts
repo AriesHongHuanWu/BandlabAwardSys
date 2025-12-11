@@ -21,3 +21,4 @@ export const googleProvider = new GoogleAuthProvider();
 
 // Helper collection references
 export const songsCollection = collection(db, "songs");
+export const adminsCollection = collection(db, "admins");

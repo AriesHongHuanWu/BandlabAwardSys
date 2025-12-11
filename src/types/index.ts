@@ -1,5 +1,6 @@
 export interface Song {
     id: string;
+    projectId: string;
     url: string;
     extractedUrl: string;
     platform: 'youtube' | 'spotify' | 'soundcloud' | 'bandlab' | 'other';

@@ -3,8 +3,12 @@ import { FileSpreadsheet } from 'lucide-react';
 import { parseExcelFile } from '../services/parser';
 import { useSongs } from '../hooks/useSongs';
 
-export const ImportUpload: React.FC = () => {
-    const { addSongs } = useSongs();
+interface ImportUploadProps {
+    projectId: string;
+}
+
+export const ImportUpload: React.FC<ImportUploadProps> = ({ projectId }) => {
+    const { addSongs } = useSongs(projectId);
     const [uploading, setUploading] = React.useState(false);
 
     const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -14,8 +18,12 @@ export const ImportUpload: React.FC = () => {
         setUploading(true);
         try {
             const parsedSongs = await parseExcelFile(file);
-            await addSongs(parsedSongs);
-            alert(`Successfully imported ${parsedSongs.length} songs!`);
+            const songsWithProject = parsedSongs.map(s => ({
+                ...s,
+                projectId
+            }));
+            await addSongs(songsWithProject);
+            alert(`Successfully imported ${songsWithProject.length} songs!`);
         } catch (err) {
             console.error(err);
             alert('Failed to parse file.');

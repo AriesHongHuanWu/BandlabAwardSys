@@ -2,8 +2,9 @@ import React, { useState, useMemo } from 'react';
 import { useSongs } from '../hooks/useSongs';
 import { SongCard } from './SongCard';
 import { ImportUpload } from './ImportUpload';
+import { AdminPanel } from './AdminPanel';
 import type { Vote } from '../types';
-import { LayoutGrid, Table as TableIcon, Download, LogOut, User as UserIcon } from 'lucide-react';
+import { LayoutGrid, Table as TableIcon, Download, LogOut, User as UserIcon, Shield, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as XLSX from 'xlsx';
 import type { User } from 'firebase/auth';
@@ -11,18 +12,25 @@ import { useAuth } from '../hooks/useAuth';
 
 interface DashboardProps {
     user: User;
+    projectId: string;
+    onBack: () => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
-    const { songs, loading, voteSong, updateStatus } = useSongs();
+import { usePresence } from '../hooks/usePresence';
+
+export const Dashboard: React.FC<DashboardProps> = ({ user, projectId, onBack }) => {
+    const { songs, loading, voteSong, updateStatus } = useSongs(projectId); // Using projectId
+    const { activeUsers } = usePresence(projectId);
     const { logout } = useAuth();
     const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
     const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+    const [showAdminPanel, setShowAdminPanel] = useState(false);
 
     const filteredSongs = useMemo(() => {
         return songs.filter(s => filterStatus === 'all' ? true : s.status === filterStatus);
     }, [songs, filterStatus]);
 
+    // ... vote handlers ...
     const handleVote = (songId: string, type: 'approve' | 'reject') => {
         const vote: Vote = {
             userId: user.uid,
@@ -37,6 +45,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     };
 
     const exportData = () => {
+        // ...
         const ws = XLSX.utils.json_to_sheet(songs.map(s => ({
             Artist: s.artistName,
             URL: s.url,
@@ -55,11 +64,36 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         <div className="min-h-screen p-8 space-y-8">
             {/* Header */}
             <header className="flex flex-col md:flex-row justify-between items-center gap-4">
-                <div>
-                    <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                        Music Screener
-                    </h1>
-                    <p className="text-white/50">Collaborative filtering dashboard</p>
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={onBack}
+                        className="p-2 rounded-full bg-white/5 hover:bg-white/10 text-white/70 transition-colors"
+                        title="Back to Projects"
+                    >
+                        <ArrowLeft size={24} />
+                    </button>
+                    <div>
+                        <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                            Music Screener
+                        </h1>
+                        <div className="flex items-center gap-2">
+                            <p className="text-white/50">Project ID: {projectId.slice(0, 8)}...</p>
+
+                            {/* Presence Indicators */}
+                            {activeUsers.length > 0 && (
+                                <div className="flex -space-x-2">
+                                    {activeUsers.map(u => (
+                                        <div key={u.uid} className="relative group" title={u.displayName || u.email || 'User'}>
+                                            <div className="w-8 h-8 rounded-full bg-primary/20 border-2 border-background flex items-center justify-center text-xs font-bold text-primary overflow-hidden">
+                                                {u.photoURL ? <img src={u.photoURL} alt="avi" /> : (u.displayName?.[0] || 'U')}
+                                            </div>
+                                            <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-background"></div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
 
                 <div className="flex gap-4 items-center">
@@ -67,6 +101,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                         <UserIcon size={14} />
                         <span>{user.displayName || user.email}</span>
                     </div>
+
+                    <button
+                        onClick={() => setShowAdminPanel(true)}
+                        className="p-2 rounded-lg bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 transition-colors"
+                        title="Admin Management"
+                    >
+                        <Shield size={20} />
+                    </button>
+
                     <button
                         onClick={logout}
                         className="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
@@ -98,10 +141,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                 </div>
             </header>
 
+            {showAdminPanel && <AdminPanel onClose={() => setShowAdminPanel(false)} />}
+
             {/* Import Section (Collapsible or just visible if empty) */}
             {songs.length === 0 && (
                 <section className="max-w-xl mx-auto">
-                    <ImportUpload />
+                    <ImportUpload projectId={projectId} />
                 </section>
             )}
 

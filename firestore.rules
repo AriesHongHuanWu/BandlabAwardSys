@@ -1,0 +1,10 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      // 只有登入的使用者 (管理員) 可以讀寫
+      // 這條規則沒有日期限制，永遠有效
+      allow read, write: if request.auth != null;
+    }
+  }
+}

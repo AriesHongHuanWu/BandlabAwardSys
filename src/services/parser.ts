@@ -15,21 +15,20 @@ interface RawRow {
     [key: string]: any;
 }
 
-export const parseExcelFile = async (file: File): Promise<Song[]> => {
+export const parseExcelFile = async (file: File): Promise<Omit<Song, 'id' | 'projectId'>[]> => {
     const buffer = await file.arrayBuffer();
     const workbook = XLSX.read(buffer, { type: 'array' });
     const sheetName = workbook.SheetNames[0];
     const sheet = workbook.Sheets[sheetName];
     const jsonData = XLSX.utils.sheet_to_json<RawRow>(sheet);
 
-    return jsonData.map((row, index) => {
+    return jsonData.map((row) => {
         // Safe access with fallback
         const url = row['Drop a track or video link (Short answer, required)'] || '';
         const platform = detectPlatform(url);
         const artistName = row['BandLab Username (Short answer, required)'] || 'Unknown Artist';
 
         return {
-            id: `song-${Date.now()}-${index}`,
             url,
             extractedUrl: url,
             platform,

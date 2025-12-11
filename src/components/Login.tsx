@@ -2,18 +2,23 @@ import React, { useState } from 'react';
 import { auth, googleProvider } from '../services/firebase';
 import { signInWithPopup } from 'firebase/auth';
 import { Music, LogIn } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
 
 export const Login: React.FC = () => {
-    const [error, setError] = useState('');
+    const [localError, setLocalError] = useState('');
+    const { error: authError } = useAuth();
 
     const handleLogin = async () => {
         try {
+            setLocalError('');
             await signInWithPopup(auth, googleProvider);
         } catch (err) {
             console.error(err);
-            setError('Failed to sign in. Please check your connection or Firebase config.');
+            setLocalError('Failed to sign in. Please check your connection or Firebase config.');
         }
     };
+
+    const displayError = localError || authError;
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
@@ -31,9 +36,9 @@ export const Login: React.FC = () => {
                     <p className="text-white/50">Administrative Access Only</p>
                 </div>
 
-                {error && (
+                {displayError && (
                     <div className="p-3 bg-red-500/20 text-red-300 rounded-lg text-sm border border-red-500/20">
-                        {error}
+                        {displayError}
                     </div>
                 )}
 
