@@ -8,12 +8,18 @@ export async function onRequestGet(context) {
     }
 
     try {
+        const fetchHeaders = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Referer': 'https://www.bandlab.com/'
+        };
+
+        // Forward Range header if present (crucial for audio seeking and some browsers)
+        if (request.headers.get('Range')) {
+            fetchHeaders['Range'] = request.headers.get('Range');
+        }
+
         const response = await fetch(audioUrl, {
-            headers: {
-                // Impersonate a browser to satisfy BandLab's CDN checks
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Referer': 'https://www.bandlab.com/'
-            }
+            headers: fetchHeaders
         });
 
         if (!response.ok) {
