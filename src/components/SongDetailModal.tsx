@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Calendar, User, MessageCircle, Tag, Share2 } from 'lucide-react';
-import { Song } from '../types';
+import type { Song } from '../types';
 
 interface SongDetailModalProps {
     song: Song | null;
